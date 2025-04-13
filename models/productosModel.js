@@ -58,7 +58,7 @@ const Producto = {
       SELECT p.*, 
              json_agg(i.imagen_url) AS imagenes
       FROM productos p
-      LEFT JOIN imagenes_productos i ON i.producto_id = p.id
+      LEFT JOIN imagenes_producto i ON i.producto_id = p.id
       GROUP BY p.id
     `);
     return result.rows;
