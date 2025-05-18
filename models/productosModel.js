@@ -78,7 +78,18 @@ const Producto = {
       [stock]
     );
     return result.rows;
-  }
+  },
+
+  async buscarPorNombre(searchTerm) {
+    if (searchTerm.length < 3) return []; // Validación de 3 caracteres
+  
+    const result = await pool.query(
+      `SELECT * FROM productos WHERE nombre ILIKE $1`, // Búsqueda insensible a mayúsculas
+      [`%${searchTerm}%`] // Coincidencias parciales (ej: "lap" encuentra "Laptop")
+    );
+    return result.rows;
+  },
+
 };
 
 module.exports = Producto;

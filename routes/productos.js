@@ -22,5 +22,5 @@ router.get('/filtrar/precio', productosController.filtrarPorPrecio);
 
 // Filtrar productos por stock disponible
 router.get('/filtrar/stock', productosController.filtrarPorStock);
-
+router.get('/filtrar/nombre', productosController.buscarPorNombre);
 module.exports = router;

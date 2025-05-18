@@ -103,6 +103,16 @@ const productosController = {
       console.error(error);
       res.status(500).json({ error: "Error al filtrar productos por stock" });
     }
+  },
+  async buscarPorNombre(req, res) {
+    try {
+      const { term } = req.query;
+      const productos = await Producto.buscarPorNombre(term);
+      res.json(productos);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error al buscar productos por nombre" });
+    }
   }
 };
 
