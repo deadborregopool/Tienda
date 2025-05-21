@@ -113,7 +113,15 @@ const productosController = {
       console.error(error);
       res.status(500).json({ error: "Error al buscar productos por nombre" });
     }
-  }
+  },
+
+
+
+
+
+
+
+  
 };
 
 module.exports = productosController;

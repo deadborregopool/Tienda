@@ -16,7 +16,7 @@ app.use("/api/categorias", categoriasRoutes);
 // Rutas
 app.use('/imagenes', require('./controllers/imagenesController'));
 // tus otras rutas
-app.use("/subcategorias", require("./routes/subcategorias"));
+app.use("/api/subcategorias", require("./routes/subcategorias"));
 // Ruta de prueba
 app.get("/", (req, res) => {
   res.send("API funcionando 🚀");

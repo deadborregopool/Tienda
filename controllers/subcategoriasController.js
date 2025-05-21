@@ -44,17 +44,32 @@ const subcategoriasController = {
       res.status(500).json({ error: "Error al eliminar subcategoría" });
     }
   },
-
-  async productosPorSubcategoria(req, res) {
+  async obtenerProductos(req, res) {
     try {
-      const { id } = req.params;
-      const productos = await Subcategoria.obtenerProductosPorSubcategoria(id);
-      res.json(productos);
+      const subcategoriaId = parseInt(req.params.id);
+      
+      // Validar existencia de la subcategoría
+      const subcategoria = await Subcategoria.obtenerPorId(subcategoriaId);
+      if (!subcategoria) {
+        return res.status(404).json({ mensaje: "Subcategoría no encontrada" });
+      }
+
+      // Obtener productos
+      const productos = await Subcategoria.obtenerProductosPorSubcategoria(subcategoriaId);
+      
+      res.json({
+        subcategoria: subcategoria.nombre,
+        categoria: subcategoria.categoria_id, // Opcional: nombre de categoría
+        productos
+      });
+
     } catch (error) {
-      console.error("Error al obtener productos:", error);
-      res.status(500).json({ error: "Error al obtener productos por subcategoría" });
+      console.error("Error:", error);
+      res.status(500).json({ mensaje: "Error interno del servidor" });
     }
   }
+
+  
 };
 
 module.exports = subcategoriasController;

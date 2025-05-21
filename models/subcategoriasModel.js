@@ -35,14 +35,34 @@ const Subcategoria = {
     );
     return result.rows[0];
   },
-
-  async obtenerProductosPorSubcategoria(subcategoria_id) {
+  async obtenerPorId(id) {
     const result = await pool.query(
-      `SELECT * FROM productos WHERE subcategoria_id = $1`,
-      [subcategoria_id]
+      "SELECT * FROM subcategorias WHERE id = $1",
+      [id]
     );
-    return result.rows;
+    return result.rows[0] || null;
   },
+   async obtenerProductosPorSubcategoria(subcategoriaId) {
+    const result = await pool.query(`
+      SELECT 
+        p.*,
+        COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      LEFT JOIN imagenes_producto i ON i.producto_id = p.id
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      WHERE p.subcategoria_id = $1
+      GROUP BY p.id, s.nombre, c.nombre
+    `, [subcategoriaId]);
+
+    return result.rows.map(p => ({
+      ...p,
+      precio: parseFloat(p.precio) // Convertir NUMERIC a float
+    }));
+  }
+  
 };
 
 module.exports = Subcategoria;
