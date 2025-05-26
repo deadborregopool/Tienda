@@ -61,7 +61,26 @@ const Subcategoria = {
       ...p,
       precio: parseFloat(p.precio) // Convertir NUMERIC a float
     }));
-  }
+  },async obtenerRecomendados(subcategoriaId, excludeProductId = null) {
+  let query = `
+    SELECT 
+      p.*,
+      COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes
+    FROM productos p
+    LEFT JOIN imagenes_producto i ON p.id = i.producto_id
+    WHERE p.subcategoria_id = $1
+    ${excludeProductId ? 'AND p.id != $3' : ''}
+    GROUP BY p.id
+    ORDER BY RANDOM() 
+    LIMIT $2
+  `;
+
+  const values = [subcategoriaId, 3];
+  if (excludeProductId) values.push(excludeProductId);
+
+  const result = await pool.query(query, values);
+  return result.rows;
+}
   
 };
 

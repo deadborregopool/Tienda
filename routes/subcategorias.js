@@ -6,7 +6,7 @@ router.post("/", subcategoriasController.crear);
 router.get("/", subcategoriasController.listar);
 router.put("/:id", subcategoriasController.actualizar);
 router.delete("/:id", subcategoriasController.eliminar);
-
+router.get("/:id/recomendados", subcategoriasController.obtenerRecomendados);
 router.get("/:id/productos", subcategoriasController.obtenerProductos);
 
 module.exports = router;

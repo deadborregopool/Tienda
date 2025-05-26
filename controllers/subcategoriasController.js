@@ -67,7 +67,38 @@ const subcategoriasController = {
       console.error("Error:", error);
       res.status(500).json({ mensaje: "Error interno del servidor" });
     }
+  },
+  async obtenerRecomendados(req, res) {
+  try {
+    const subcategoriaId = parseInt(req.params.id);
+    const excludeProductId = req.query.exclude ? parseInt(req.query.exclude) : null;
+
+    // Validar subcategoría
+    const subcategoria = await Subcategoria.obtenerPorId(subcategoriaId);
+    if (!subcategoria) {
+      return res.status(404).json({ mensaje: "Subcategoría no encontrada" });
+    }
+
+    // Obtener recomendados
+    const recomendados = await Subcategoria.obtenerRecomendados(subcategoriaId, excludeProductId);
+
+    if (recomendados.length === 0) {
+      return res.json({
+        mensaje: "No hay productos recomendados disponibles en esta subcategoría",
+        productos: []
+      });
+    }
+
+    res.json({
+      subcategoria: subcategoria.nombre,
+      productos: recomendados
+    });
+
+  } catch (error) {
+    console.error("Error al obtener recomendados:", error);
+    res.status(500).json({ mensaje: "Error interno del servidor" });
   }
+}
 
   
 };
