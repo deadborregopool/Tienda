@@ -8,22 +8,32 @@ const productosController = {
 
     try {
       const result = await pool.query(
-        `
-        SELECT 
-          p.*,
-          COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes
-        FROM 
-          productos p
-        LEFT JOIN 
-          imagenes_producto i ON p.id = i.producto_id
-        WHERE 
-          p.id = $1
-        GROUP BY 
-          p.id
-        `,
+            `
+      SELECT 
+        p.*,
+        COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria,
+        -- Calcular precio final si está en oferta
+        CASE 
+          WHEN p.en_oferta THEN ROUND(p.precio * (1 - p.porcentaje_descuento/100), 2)
+          ELSE p.precio 
+        END AS precio_final
+      FROM 
+        productos p
+      LEFT JOIN 
+        imagenes_producto i ON p.id = i.producto_id
+      INNER JOIN 
+        subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN 
+        categorias c ON c.id = s.categoria_id
+      WHERE 
+        p.id = $1
+      GROUP BY 
+        p.id, s.nombre, c.nombre
+      `,
         [id]
       );
-
       if (result.rows.length === 0) {
         return res.status(404).json({ mensaje: "Producto no encontrado" });
       }
@@ -121,7 +131,7 @@ const productosController = {
 
 
 
-  
+
 };
 
 module.exports = productosController;
