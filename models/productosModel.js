@@ -1,5 +1,5 @@
 const pool = require("../db");
-
+const { calcularPrecioFinal } = require("../utils/priceUtils");
 const Producto = {
   async crearProducto(data) {
     const {
@@ -65,96 +65,153 @@ const Producto = {
   },
 
   // En todos tus métodos de consulta (listarProductos, buscarPorNombre, etc.)
-  async listarProductos() {
+    async listarProductos() {
     const result = await pool.query(`
-    SELECT 
-      p.*,
-      COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes,
-      s.nombre AS subcategoria,
-      c.nombre AS categoria,
-      -- Añade cálculo de precio final
-      CASE 
-        WHEN p.en_oferta THEN ROUND(p.precio * (1 - p.porcentaje_descuento/100), 2)
-        ELSE p.precio 
-      END AS precio_final
-    FROM productos p
-    LEFT JOIN imagenes_producto i ON p.id = i.producto_id
-    INNER JOIN subcategorias s ON s.id = p.subcategoria_id
-    INNER JOIN categorias c ON c.id = s.categoria_id
-    GROUP BY p.id, s.nombre, c.nombre
-  `);
+      SELECT 
+        p.*,
+        COALESCE(
+          (SELECT json_agg(imagen_url) 
+           FROM imagenes_producto 
+           WHERE producto_id = p.id),
+          '[]'
+        ) AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      LEFT JOIN imagenes_producto i ON i.producto_id = p.id
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      GROUP BY p.id, s.nombre, c.nombre
+    `);
 
     return result.rows.map(p => ({
       ...p,
       precio: parseFloat(p.precio),
-      precio_final: parseFloat(p.precio_final)
+      precio_final: calcularPrecioFinal(p) // Usamos el helper aquí
     }));
   },
-  async listarOfertas(limit = 3) {
-  const parsedLimit = parseInt(limit) || 3;
-  
-  const result = await pool.query(`
-    SELECT 
-      p.id,
-      p.nombre,
-      p.precio,
-      p.porcentaje_descuento,
-      p.en_oferta,
-      COALESCE(
-        (SELECT json_agg(imagen_url) FROM imagenes_producto WHERE producto_id = p.id),
-        '[]'
-      ) AS imagenes,
-      ROUND(p.precio * (1 - p.porcentaje_descuento/100)::numeric, 2) AS precio_final
-    FROM productos p
-    WHERE p.en_oferta = true
-    ORDER BY p.porcentaje_descuento DESC
-    LIMIT $1
-  `, [parsedLimit]);
-  
-  return result.rows.map(p => ({
-    ...p,
-    precio: parseFloat(p.precio),
-    precio_final: parseFloat(p.precio_final)
-  }));
-},
 
-  async filtrarPorPrecio(min, max) {
+  async listarOfertas(limit = 3) {
+    const parsedLimit = parseInt(limit) || 3;
+    
     const result = await pool.query(`
-    SELECT p.*, 
-           COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]'::json) AS imagenes
-    FROM productos p
-    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
-    WHERE p.precio BETWEEN $1 AND $2
-    GROUP BY p.id
-  `, [min, max]);
-    return result.rows;
+      SELECT 
+        p.*,
+        COALESCE(
+          (SELECT json_agg(imagen_url) 
+           FROM imagenes_producto 
+           WHERE producto_id = p.id),
+          '[]'
+        ) AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      WHERE p.en_oferta = true
+      ORDER BY p.porcentaje_descuento DESC
+      LIMIT $1
+    `, [parsedLimit]);
+    
+    return result.rows.map(p => ({
+      ...p,
+      precio: parseFloat(p.precio),
+      precio_final: calcularPrecioFinal(p) // Usamos el helper aquí
+    }));
   },
 
-  async filtrarPorStock(stock) {
+  async filtrarPorPrecio(min, max) {
+    // Convertir a números y validar
+    const minNum = typeof min === 'number' ? min : parseFloat(min);
+    const maxNum = typeof max === 'number' ? max : parseFloat(max);
+    
+    if (isNaN(minNum) || isNaN(maxNum)) {
+      throw new Error('Parámetros min/max inválidos');
+    }
+
     const result = await pool.query(`
-    SELECT p.*, 
-           COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]'::json) AS imagenes
-    FROM productos p
-    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
-    WHERE p.stock >= $1
-    GROUP BY p.id
-  `, [stock]);
-    return result.rows;
+      SELECT 
+        p.*,
+        COALESCE(
+          (SELECT json_agg(imagen_url) 
+           FROM imagenes_producto 
+           WHERE producto_id = p.id),
+          '[]'
+        ) AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      WHERE p.precio BETWEEN $1 AND $2
+      GROUP BY p.id, s.nombre, c.nombre
+    `, [minNum, maxNum]);
+    
+    return result.rows.map(p => ({
+      ...p,
+      precio: parseFloat(p.precio),
+      precio_final: calcularPrecioFinal(p)
+    }));
+  },
+   async filtrarPorStock(stock) {
+    // Convertir y validar
+    const stockNum = typeof stock === 'number' ? stock : parseInt(stock);
+    if (isNaN(stockNum)) {
+      throw new Error('Parámetro stock inválido');
+    }
+
+    const result = await pool.query(`
+      SELECT 
+        p.*,
+        COALESCE(
+          (SELECT json_agg(imagen_url) 
+           FROM imagenes_producto 
+           WHERE producto_id = p.id),
+          '[]'
+        ) AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      WHERE p.stock >= $1
+      GROUP BY p.id, s.nombre, c.nombre
+    `, [stockNum]);
+    
+    return result.rows.map(p => ({
+      ...p,
+      precio: parseFloat(p.precio),
+      precio_final: calcularPrecioFinal(p)
+    }));
   },
 
   async buscarPorNombre(searchTerm) {
     if (searchTerm.length < 3) return [];
-
+    
     const result = await pool.query(`
-    SELECT p.*, 
-           COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]'::json) AS imagenes
-    FROM productos p
-    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
-    WHERE p.nombre ILIKE $1
-    GROUP BY p.id
-  `, [`%${searchTerm}%`]);
-    return result.rows;
-  },
+      SELECT 
+        p.*,
+        COALESCE(
+          (SELECT json_agg(imagen_url) 
+           FROM imagenes_producto 
+           WHERE producto_id = p.id),
+          '[]'
+        ) AS imagenes,
+        s.nombre AS subcategoria,
+        c.nombre AS categoria
+      FROM productos p
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      INNER JOIN categorias c ON c.id = s.categoria_id
+      WHERE p.nombre ILIKE $1
+      GROUP BY p.id, s.nombre, c.nombre
+    `, [`%${searchTerm}%`]);
+    
+    return result.rows.map(p => ({
+      ...p,
+      precio: parseFloat(p.precio),
+      precio_final: calcularPrecioFinal(p) // Usamos el helper aquí
+    }));
+  }
 
 };
 
