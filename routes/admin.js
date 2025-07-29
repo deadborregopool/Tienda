@@ -5,12 +5,27 @@ const productosController = require('../controllers/productosController');
 
 // Todas las rutas protegidas por autenticación
 router.use(authMiddleware);
+const { subirImagenes, procesarImagenes } = productosController;
 
 // Rutas CRUD protegidas
 router.post('/productos', productosController.crearProductoConImagenes);
 router.put('/productos/:id', productosController.actualizarProducto);
 router.delete('/productos/:id', productosController.eliminarProducto);
+router.post(
+  '/productos/con-imagenes', 
+  subirImagenes,
+  procesarImagenes,
+  productosController.crearProductoConImagenes
+);
 
+router.put(
+  '/productos/:id', 
+  subirImagenes,
+  procesarImagenes,
+  productosController.actualizarProducto
+);
+
+router.delete('/productos/:id', productosController.eliminarProducto);
 // Ruta de prueba
 router.get('/test', (req, res) => {
     res.json({ message: 'Acceso concedido', admin: req.admin });
