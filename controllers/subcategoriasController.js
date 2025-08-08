@@ -98,8 +98,27 @@ const subcategoriasController = {
     console.error("Error al obtener recomendados:", error);
     res.status(500).json({ mensaje: "Error interno del servidor" });
   }
-}
+},
+// Agrega este método en subcategoriasController.js
+async obtenerSoloProductosPorSubcategoria(req, res) {
+  try {
+    const subcategoriaId = parseInt(req.params.id);
+    
+    // Validar existencia de subcategoría
+    const subcategoria = await Subcategoria.obtenerPorId(subcategoriaId);
+    if (!subcategoria) {
+      return res.status(404).json({ mensaje: "Subcategoría no encontrada" });
+    }
 
+    // Obtener solo productos
+    const productos = await Subcategoria.obtenerSoloProductosPorSubcategoria(subcategoriaId);
+    res.json(productos);
+
+  } catch (error) {
+    console.error("Error al obtener productos por subcategoría:", error);
+    res.status(500).json({ mensaje: "Error interno del servidor" });
+  }
+}
   
 };
 

@@ -69,7 +69,28 @@ const Categoria = {
       precio_final: calcularPrecioFinal(p) // Añade el precio calculado
     }));
   },
+async obtenerSoloProductosPorCategoria(categoriaId) {
+  const result = await pool.query(`
+    SELECT 
+      p.*,
+      COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes
+    FROM productos p
+    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
+    WHERE p.id IN (
+      SELECT p.id
+      FROM productos p
+      INNER JOIN subcategorias s ON s.id = p.subcategoria_id
+      WHERE s.categoria_id = $1
+    )
+    GROUP BY p.id
+  `, [categoriaId]);
 
+  return result.rows.map(p => ({
+    ...p,
+    precio: parseFloat(p.precio),
+    precio_final: calcularPrecioFinal(p)
+  }));
+}
 
 };
 

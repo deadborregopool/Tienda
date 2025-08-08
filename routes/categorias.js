@@ -5,5 +5,5 @@ const categoriasController = require("../controllers/categoriasController");
 router.get("/", categoriasController.listarCategoriasConSubcategorias);
 router.get("/:id", categoriasController.obtenerCategoriaPorId);
 router.get("/:categoriaId/subcategorias-productos", categoriasController.obtenerSubcategoriasYProductos); // Nueva ruta
-
+router.get("/:categoriaId/productos", categoriasController.obtenerSoloProductosPorCategoria);
 module.exports = router;

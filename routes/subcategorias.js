@@ -8,5 +8,5 @@ router.put("/:id", subcategoriasController.actualizar);
 router.delete("/:id", subcategoriasController.eliminar);
 router.get("/:id/recomendados", subcategoriasController.obtenerRecomendados);
 router.get("/:id/productos", subcategoriasController.obtenerProductos);
-
+router.get("/:id/solo-productos", subcategoriasController.obtenerSoloProductosPorSubcategoria)
 module.exports = router;

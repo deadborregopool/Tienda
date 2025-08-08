@@ -27,7 +27,25 @@ const categoriasController = {
       res.status(500).json({ mensaje: "Error interno del servidor" });
     }
   },
+async obtenerSoloProductosPorCategoria(req, res) {
+  try {
+    const categoriaId = parseInt(req.params.categoriaId);
+    
+    // Verificar existencia de categoría
+    const categoria = await Categoria.obtenerCategoriaPorId(categoriaId);
+    if (!categoria) {
+      return res.status(404).json({ mensaje: "Categoría no encontrada" });
+    }
 
+    const productos = await Categoria.obtenerSoloProductosPorCategoria(categoriaId);
+    res.json(productos);
+
+  } catch (error) {
+    console.error("Error al obtener productos por categoría:", error);
+    res.status(500).json({ mensaje: "Error interno del servidor" });
+  }
+},
+  
   // Nuevo método integrado
   async obtenerSubcategoriasYProductos(req, res) {
     try {

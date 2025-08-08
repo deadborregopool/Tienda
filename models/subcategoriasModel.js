@@ -88,7 +88,25 @@ const Subcategoria = {
       precio: parseFloat(p.precio),
       precio_final: calcularPrecioFinal(p) // Agregamos el precio calculado aquí
     }));
-  }
+  },
+  // Agrega este método en subcategoriasModel.js
+async obtenerSoloProductosPorSubcategoria(subcategoriaId) {
+  const result = await pool.query(`
+    SELECT 
+      p.*,
+      COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes
+    FROM productos p
+    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
+    WHERE p.subcategoria_id = $1
+    GROUP BY p.id
+  `, [subcategoriaId]);
+
+  return result.rows.map(p => ({
+    ...p,
+    precio: parseFloat(p.precio),
+    precio_final: calcularPrecioFinal(p)
+  }));
+}
   
 };
 
