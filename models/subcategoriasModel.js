@@ -96,15 +96,11 @@ async obtenerSoloProductosPorSubcategoria(subcategoriaId) {
       p.*,
       s.nombre AS subcategoria,
       c.nombre AS categoria,
-      COALESCE(
-        (SELECT json_agg(imagen_url) 
-         FROM imagenes_producto 
-         WHERE producto_id = p.id),
-        '[]'
-      ) AS imagenes
+      COALESCE(json_agg(i.imagen_url) FILTER (WHERE i.imagen_url IS NOT NULL), '[]') AS imagenes
     FROM productos p
     INNER JOIN subcategorias s ON s.id = p.subcategoria_id
     INNER JOIN categorias c ON c.id = s.categoria_id
+    LEFT JOIN imagenes_producto i ON i.producto_id = p.id
     WHERE p.subcategoria_id = $1
     GROUP BY p.id, s.nombre, c.nombre
   `, [subcategoriaId]);
@@ -114,7 +110,7 @@ async obtenerSoloProductosPorSubcategoria(subcategoriaId) {
     precio: parseFloat(p.precio),
     precio_final: calcularPrecioFinal(p)
   }));
-},
+}
   
 };
 
